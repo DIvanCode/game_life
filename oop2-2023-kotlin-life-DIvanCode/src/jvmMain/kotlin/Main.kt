@@ -56,7 +56,7 @@ fun App() {
 }
 
 fun main() = application {
-    Game.init(30, 30)
+    Game.init(20, 20)
 
     Window(
         onCloseRequest = ::exitApplication,
