@@ -10,6 +10,7 @@ group = "com.example"
 version = "1.0-SNAPSHOT"
 val coroutines_version = "1.6.4"
 val retrofit_version = "2.9.0"
+val activity_version = "1.7.1"
 
 repositories {
     google()
@@ -45,6 +46,8 @@ kotlin {
                 implementation("com.squareup.retrofit2:adapter-rxjava2:$retrofit_version")
                 implementation("junit:junit:4.13.2")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version")
+                implementation("androidx.activity:activity:$activity_version")
+                implementation("androidx.activity:activity-ktx:$activity_version")
             }
         }
         val jvmTest by getting
