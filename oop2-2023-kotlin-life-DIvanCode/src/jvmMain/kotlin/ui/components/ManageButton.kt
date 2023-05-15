@@ -13,9 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-class ManageButton(var modifier: Modifier = Modifier.padding(8.dp).fillMaxWidth(),
-                   var text: String,
-                   var errorMessage: MutableState<String> = mutableStateOf("")
+class ManageButton(
+    var modifier: Modifier = Modifier.padding(8.dp).fillMaxWidth(),
+    var text: String,
+    var errorMessage: MutableState<String> = mutableStateOf("")
 ) {
     @Composable
     operator fun invoke(

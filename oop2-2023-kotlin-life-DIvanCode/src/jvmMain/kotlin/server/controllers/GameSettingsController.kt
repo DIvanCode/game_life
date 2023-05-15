@@ -5,7 +5,9 @@ import common.interaction.Response
 import common.interaction.ResponseError
 import common.interaction.ResponseOK
 
-class GameSettingsController(val gameSettings: GameSettings = GameSettings()) {
+class GameSettingsController(
+    val gameSettings: GameSettings = GameSettings()
+) {
     fun setFieldHeight(height: Int): Response {
         if (height < 1) {
             return ResponseError("Высота поля должна быть как минимум 1")

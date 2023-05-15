@@ -9,12 +9,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun GameSettingsTextDisplay(fieldHeight: MutableState<String> = mutableStateOf(""),
-                            fieldWidth: MutableState<String> = mutableStateOf(""),
-                            cellColors: MutableState<String> = mutableStateOf(""),
-                            aliveLeftBorder: MutableState<String> = mutableStateOf(""),
-                            aliveRightBorder: MutableState<String> = mutableStateOf(""),
-                            birthAmount: MutableState<String> = mutableStateOf("")) {
+fun GameSettingsTextDisplay(
+    fieldHeight: MutableState<String> = mutableStateOf(""),
+    fieldWidth: MutableState<String> = mutableStateOf(""),
+    cellColors: MutableState<String> = mutableStateOf(""),
+    aliveLeftBorder: MutableState<String> = mutableStateOf(""),
+    aliveRightBorder: MutableState<String> = mutableStateOf(""),
+    birthAmount: MutableState<String> = mutableStateOf("")
+) {
     val text =
         "Высота поля: ${fieldHeight.value}\n" +
         "Ширина поля: ${fieldWidth.value}\n" +

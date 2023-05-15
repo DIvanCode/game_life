@@ -10,20 +10,26 @@ import androidx.compose.ui.unit.dp
 import common.GameSettings
 import common.interaction.Request
 import common.interaction.Response
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import server.controllers.RequestController
 import ui.components.ManageButton
 import ui.components.OneRowTextField
 import ui.components.Screen
 import ui.displays.GameSettingsTextDisplay
 
-class GameSettingsScreen(val startGame: () -> Unit): Screen() {
+class GameSettingsScreen(
+    val startGame: () -> Unit
+): Screen() {
     @Composable
     override fun LazyItemScope.draw() {
         val gameSettingsResponse: Response = RequestController.handleRequest(Request(
             route = "/settings",
             method = Request.GET
         ))
-        val gameSettings = gameSettingsResponse.responseBody["settings"] as GameSettings
+
+        val gameSettings = Json.decodeFromString<GameSettings>(gameSettingsResponse.body)
 
         val gameFieldHeightInput = OneRowTextField(placeholder = "Высота поля")
         val gameFieldWidthInput = OneRowTextField(placeholder = "Ширина поля")
@@ -117,9 +123,9 @@ class GameSettingsScreen(val startGame: () -> Unit): Screen() {
                     val response = RequestController.handleRequest(Request(
                         route = "/settings",
                         method = Request.POST,
-                        mapOf(
+                        body = Json.encodeToString(mapOf(
                             requestKey to oneRowTextField.text.value
-                        )
+                        ))
                     ))
                     if (response.status != Response.OK) {
                         oneRowTextField.errorMessage.value = response.message

@@ -1,3 +1,10 @@
 package common
 
-data class Cell(var row: Int, var col: Int, var state: CellState = CellState())
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class Cell(
+    val row: Int,
+    val col: Int,
+    val state: CellState
+)

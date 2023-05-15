@@ -17,12 +17,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 
-class CellDisplay(val onClick: () -> Unit,
-                  var color: MutableState<Color> = mutableStateOf(Color.White),
-                  var tooltip: MutableState<String> = mutableStateOf("")) {
+class CellDisplay(
+    var color: MutableState<Color> = mutableStateOf(Color.White),
+    var tooltip: MutableState<String> = mutableStateOf("")
+) {
+    fun changeColor(color: Color) {
+        this.color.value = color
+    }
+
+    fun changeTooltip(tooltip: String) {
+        this.tooltip.value = tooltip
+    }
+
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
-    operator fun invoke() {
+    operator fun invoke(onClick: () -> Unit) {
         TooltipArea(
             tooltip = {
                 Surface(

@@ -9,9 +9,11 @@ import androidx.compose.ui.unit.dp
 import ui.components.ManageButton
 import ui.components.Screen
 
-class GreetingScreen(val onCreateNewGame: () -> Unit,
-                     val onLoadPreviousGame: () -> Unit,
-                     val onLoadExistingGame: (Int) -> Unit): Screen() {
+class GreetingScreen(
+    val onCreateNewGame: () -> Unit,
+    val onLoadPreviousGame: () -> Unit,
+    val onLoadExistingGame: (Int) -> Unit
+): Screen() {
     @Composable
     override fun LazyItemScope.draw() {
         val createNewGame = ManageButton(text = "Начать новую игру")

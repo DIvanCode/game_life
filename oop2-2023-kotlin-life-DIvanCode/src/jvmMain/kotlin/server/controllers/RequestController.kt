@@ -1,10 +1,13 @@
 package server.controllers
 
-import common.CellState
+import common.Cell
 import common.interaction.Request
 import common.interaction.Response
 import common.interaction.ResponseError
 import common.interaction.ResponseOK
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 object RequestController {
     var gameSettingsController: GameSettingsController? = null
@@ -18,41 +21,56 @@ object RequestController {
                 }
 
                 gameSettingsController = GameSettingsController()
+                gameController = null
 
                 return ResponseOK()
             }
-        } else if (request.route == "/settings") {
+        }
+        if (request.route == "/settings") {
             if (request.method == Request.GET) {
                 if (gameSettingsController == null) {
                     return ResponseError("GameSettings is null")
                 }
 
-                return ResponseOK(mapOf(
-                    "settings" to gameSettingsController!!.gameSettings
-                ))
-            } else {
-                if (request.requestBody.containsKey("fieldHeight")) {
-                    return gameSettingsController!!.setFieldHeight(request.requestBody["fieldHeight"].toString().toInt())
+                return ResponseOK(Json.encodeToString(gameSettingsController!!.gameSettings))
+            }
+            if (request.method == Request.POST) {
+                val requestBody = Json.decodeFromString<Map<String, Int>>(request.body)
+
+                if (requestBody.containsKey("fieldHeight")) {
+                    return gameSettingsController!!.setFieldHeight(requestBody["fieldHeight"]!!)
                 }
-                if (request.requestBody.containsKey("fieldWidth")) {
-                    return gameSettingsController!!.setFieldWidth(request.requestBody["fieldWidth"].toString().toInt())
+                if (requestBody.containsKey("fieldWidth")) {
+                    return gameSettingsController!!.setFieldWidth(requestBody["fieldWidth"]!!)
                 }
-                if (request.requestBody.containsKey("cellColors")) {
-                    return gameSettingsController!!.setCellColors(request.requestBody["cellColors"].toString().toInt())
+                if (requestBody.containsKey("cellColors")) {
+                    return gameSettingsController!!.setCellColors(requestBody["cellColors"]!!)
                 }
-                if (request.requestBody.containsKey("aliveLeftBorder")) {
-                    return gameSettingsController!!.setAliveLeftBorder(request.requestBody["aliveLeftBorder"].toString().toInt())
+                if (requestBody.containsKey("aliveLeftBorder")) {
+                    return gameSettingsController!!.setAliveLeftBorder(requestBody["aliveLeftBorder"]!!)
                 }
-                if (request.requestBody.containsKey("aliveRightBorder")) {
-                    return gameSettingsController!!.setAliveRightBorder(request.requestBody["aliveRightBorder"].toString().toInt())
+                if (requestBody.containsKey("aliveRightBorder")) {
+                    return gameSettingsController!!.setAliveRightBorder(requestBody["aliveRightBorder"]!!)
                 }
-                if (request.requestBody.containsKey("birthAmount")) {
-                    return gameSettingsController!!.setBirthAmount(request.requestBody["birthAmount"].toString().toInt())
+                if (requestBody.containsKey("birthAmount")) {
+                    return gameSettingsController!!.setBirthAmount(requestBody["birthAmount"]!!)
                 }
 
                 return ResponseError("Unhandled request")
             }
-        } else if (request.route == "/game") {
+        }
+        if (request.route == "/game") {
+            if (request.method == Request.GET) {
+                if (gameSettingsController == null) {
+                    return ResponseError("GameSettings is null")
+                }
+
+                if (gameController == null) {
+                    return ResponseError("GameController is null")
+                }
+
+                return ResponseOK(Json.encodeToString((gameController!!.game)))
+            }
             if (request.method == Request.POST) {
                 if (gameSettingsController == null) {
                     return ResponseError("GameSettings is null")
@@ -66,51 +84,49 @@ object RequestController {
 
                 return ResponseOK()
             }
-        } else if (request.route == "/game/field") {
+        }
+        if (request.route == "/game/step") {
             if (request.method == Request.GET) {
                 if (gameController == null) {
                     return ResponseError("Game is null")
                 }
 
-                return ResponseOK(mapOf(
-                    "field" to gameController!!.fieldController.field
-                ))
+                val diff = gameController!!.makeStep()
+
+                return ResponseOK(Json.encodeToString(diff))
             }
-        } else if (request.route == "/game/cell/state") {
+        }
+        if (request.route == "/game/clear") {
             if (request.method == Request.GET) {
                 if (gameController == null) {
                     return ResponseError("Game is null")
                 }
 
-                if (!request.requestBody.containsKey("row") ||
-                    !request.requestBody.containsKey("col")) {
-                    return ResponseError("Unhandled request")
-                }
+                val diff = gameController!!.clear()
 
-                val row = request.requestBody["row"].toString().toInt()
-                val col = request.requestBody["col"].toString().toInt()
-
-                return ResponseOK(mapOf(
-                    "field" to gameController!!.fieldController.getState(row, col)
-                ))
+                return ResponseOK(Json.encodeToString(diff))
             }
-        } else if (request.route == "/game/cell/color") {
+        }
+        if (request.route == "/game/random") {
             if (request.method == Request.GET) {
                 if (gameController == null) {
                     return ResponseError("Game is null")
                 }
 
-                if (!request.requestBody.containsKey("row") ||
-                    !request.requestBody.containsKey("col") ||
-                    !request.requestBody.containsKey("color")) {
-                    return ResponseError("Unhandled request")
+                val diff = gameController!!.fillRandom()
+
+                return ResponseOK(Json.encodeToString(diff))
+            }
+        }
+        if (request.route == "/game/cell/change") {
+            if (request.method == Request.POST) {
+                if (gameController == null) {
+                    return ResponseError("Game is null")
                 }
 
-                val row = request.requestBody["row"].toString().toInt()
-                val col = request.requestBody["col"].toString().toInt()
-                val color = request.requestBody["color"].toString().toInt()
+                val cell = Json.decodeFromString<Cell>(request.body)
 
-                gameController!!.fieldController.setState(row, col, CellState(color = color))
+                gameController!!.game.field.setState(cell.row, cell.col, cell.state)
 
                 return ResponseOK()
             }

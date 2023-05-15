@@ -21,10 +21,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 
-class OneRowTextField(var modifier: Modifier = Modifier.padding(8.dp).fillMaxWidth(),
-                      var placeholder: String = "",
-                      var text: MutableState<String> = mutableStateOf(""),
-                      var errorMessage: MutableState<String> = mutableStateOf("")) {
+class OneRowTextField(
+    var modifier: Modifier = Modifier.padding(8.dp).fillMaxWidth(),
+    var placeholder: String = "",
+    var text: MutableState<String> = mutableStateOf(""),
+    var errorMessage: MutableState<String> = mutableStateOf("")
+) {
     @Composable
     operator fun invoke(modifier: Modifier = this.modifier,
                         onChange: () -> Unit) {
