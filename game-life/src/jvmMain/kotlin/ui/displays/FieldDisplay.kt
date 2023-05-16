@@ -18,7 +18,7 @@ class FieldDisplay(
     val colorPicker: ColorPicker
 ) {
     @Composable
-    operator fun invoke() {
+    operator fun invoke(onColorChange: (Int, Int, Int) -> Unit) {
         for (row in 0 until gameSettings.fieldHeight) {
             Row {
                 for (col in 0 until gameSettings.fieldWidth) {
@@ -40,6 +40,8 @@ class FieldDisplay(
                         if (response.status == Response.OK) {
                             cellDisplay.changeColor(colorPicker.pickedColor())
                         }
+
+                        onColorChange(row, col, colorPicker.pickedId())
                     }
                 }
             }

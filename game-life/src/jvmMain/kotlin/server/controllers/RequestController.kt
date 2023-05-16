@@ -1,6 +1,8 @@
 package server.controllers
 
 import common.Cell
+import common.Game
+import common.JsonHandler
 import common.interaction.Request
 import common.interaction.Response
 import common.interaction.ResponseError
@@ -72,6 +74,23 @@ object RequestController {
                 return ResponseOK(Json.encodeToString((gameController!!.game)))
             }
             if (request.method == Request.POST) {
+                if (gameSettingsController != null) {
+                    return ResponseError("GameSettings is null")
+                }
+
+                if (gameController != null) {
+                    return ResponseError("GameController is not null")
+                }
+
+                val game = Json.decodeFromString<Game>(request.body)
+                gameSettingsController = GameSettingsController(game.settings)
+                gameController = GameController(game.settings, game)
+
+                return ResponseOK()
+            }
+        }
+        if (request.route == "/start") {
+            if (request.method == Request.POST) {
                 if (gameSettingsController == null) {
                     return ResponseError("GameSettings is null")
                 }
@@ -127,6 +146,30 @@ object RequestController {
                 val cell = Json.decodeFromString<Cell>(request.body)
 
                 gameController!!.game.field.setState(cell.row, cell.col, cell.state)
+
+                return ResponseOK()
+            }
+        }
+        if (request.route == "/save") {
+            if (request.method == Request.POST) {
+                if (gameController == null) {
+                    return ResponseError("Game is null")
+                }
+
+                JsonHandler.writeGame(gameController!!.game)
+
+                return ResponseOK()
+            }
+        }
+        if (request.route == "/previous") {
+            if (request.method == Request.POST) {
+                if (gameController != null) {
+                    return ResponseError("Game is not null")
+                }
+
+                val game = JsonHandler.readGame()
+                gameSettingsController = GameSettingsController(game.settings)
+                gameController = GameController(game.settings, game)
 
                 return ResponseOK()
             }

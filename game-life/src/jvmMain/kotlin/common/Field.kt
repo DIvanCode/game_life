@@ -80,6 +80,6 @@ data class Field(
     }
 
     private fun inside(row: Int, col: Int): Boolean {
-        return row in 0 until width && col in 0 until height
+        return row in 0 until height && col in 0 until width
     }
 }

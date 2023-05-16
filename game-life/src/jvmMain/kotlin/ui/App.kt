@@ -17,32 +17,24 @@ fun App() {
 
     screens.add(GreetingScreen(
         onCreateNewGame = {
-            RequestController.handleRequest(Request(
-                route = "/",
-                method = Request.POST
-            ))
-
             currentScreen.value = 1
         },
         onLoadPreviousGame = {
-            println("OK")
+            currentScreen.value = 2
         },
-        onLoadExistingGame = { gameId: Int ->
-            println(gameId.toString())
+        onLoadExistingGame = {
+            currentScreen.value = 2
         }
     ))
 
     screens.add(GameSettingsScreen {
-        RequestController.handleRequest(Request(
-            route = "/game",
-            method = Request.POST
-        ))
-
         currentScreen.value = 2
     })
 
-
     screens.add(GameScreen())
+
+//    screens.add(TestScreen())
+//    currentScreen.value = screens.size - 1
 
     screens[currentScreen.value]()
 }

@@ -13,5 +13,5 @@ pluginManagement {
     }
 }
 
-rootProject.name = "oop2-2023-kotlin-life-DIvanCode"
+rootProject.name = "game-life"
 

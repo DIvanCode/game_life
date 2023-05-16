@@ -20,7 +20,7 @@ import ui.components.Screen
 import ui.displays.GameSettingsTextDisplay
 
 class GameSettingsScreen(
-    val startGame: () -> Unit
+    val onStartGame: () -> Unit
 ): Screen() {
     @Composable
     override fun LazyItemScope.draw() {
@@ -147,10 +147,16 @@ class GameSettingsScreen(
 
                 if (hasError) return@startGameButton
 
-                println("START")
-
-                startGame()
+                this@GameSettingsScreen.startGame()
             }
         }
+    }
+
+    private fun startGame() {
+        RequestController.handleRequest(Request(
+            route = "/start",
+            method = Request.POST
+        ))
+        onStartGame()
     }
 }

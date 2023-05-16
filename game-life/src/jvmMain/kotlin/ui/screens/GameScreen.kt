@@ -1,5 +1,6 @@
 package ui.screens
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyRow
@@ -8,8 +9,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import common.Cell
+import common.CellState
 import common.Game
+import common.JsonHandler
 import common.interaction.Request
 import common.interaction.Response
 import kotlinx.coroutines.delay
@@ -18,19 +22,30 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import server.controllers.RequestController
 import ui.components.ColorPicker
+import ui.components.ManageDialog
 import ui.components.ManageButton
 import ui.components.Screen
 import ui.displays.CellDisplay
 import ui.displays.FieldDisplay
+import ui.system.DirectoryPicker
 
 class GameScreen: Screen() {
     @Composable
     override fun LazyItemScope.draw() {
+        fun requestSave() {
+            RequestController.handleRequest(Request(
+                route = "/save",
+                method = Request.POST
+            ))
+        }
+
         val gameResponse: Response = RequestController.handleRequest(Request(
             route = "/game",
             method = Request.GET
         ))
         val game = Json.decodeFromString<Game>(gameResponse.body)
+
+        requestSave()
 
         val colorPicker = ColorPicker(game.settings.cellColors)
 
@@ -48,6 +63,29 @@ class GameScreen: Screen() {
         val stopButton = ManageButton(text = "Закончить")
         val clearButton = ManageButton(text = "Очистить")
         val fillRandomButton = ManageButton(text = "Заполнить случайно")
+        val saveAsButton = ManageButton(text = "Сохранить в папку")
+        val saveCurrentAsButton = ManageButton(text = "Сохранить текущее состояние в папку")
+
+        val saveDialog = ManageDialog()
+
+        val saveCurrentStateManager = DirectoryPicker()
+        saveCurrentStateManager { path ->
+            JsonHandler.writeGame(game, "$path\\game-${java.util.Date().time}.json")
+            if (saveDialog.show.value) {
+                saveDialog.show.value = false
+            }
+        }
+
+        saveDialog {
+            Dialog(
+                title = "Сохранить?",
+                onCloseRequest = { saveDialog.show.value = false }
+            ) {
+                saveCurrentAsButton {
+                    saveCurrentStateManager.open()
+                }
+            }
+        }
 
         val fieldDisplay = FieldDisplay(
             game.settings,
@@ -67,6 +105,7 @@ class GameScreen: Screen() {
                 val cell = changedCells[i] as Cell
                 val index = game.field.index(cell.row, cell.col)
                 cellDisplays[index].color.value = colorPicker.colorById(cell.state.color)
+                game.field.setState(cell.row, cell.col, cell.state)
             }
         }
 
@@ -88,6 +127,7 @@ class GameScreen: Screen() {
                 makeStepButton(modifier = Modifier.width(200.dp)) {
                     if (!running) {
                         makeStep()
+                        requestSave()
                     }
                 }
             }
@@ -97,10 +137,16 @@ class GameScreen: Screen() {
                     if (!running) {
                         running = true
                         coroutineScope.launch {
+                            requestSave()
+
                             while (running) {
                                 delay(50)
                                 makeStep()
                             }
+
+                            requestSave()
+
+                            saveDialog.show.value = true
                         }
                     }
                 }
@@ -116,6 +162,7 @@ class GameScreen: Screen() {
                 clearButton(modifier = Modifier.width(200.dp)) {
                     if (!running) {
                         requestActivity("/game/clear")
+                        requestSave()
                     }
                 }
             }
@@ -124,6 +171,16 @@ class GameScreen: Screen() {
                 fillRandomButton(modifier = Modifier.width(200.dp)) {
                     if (!running) {
                         requestActivity("/game/random")
+                        requestSave()
+                    }
+                }
+            }
+
+            item {
+                saveAsButton(modifier = Modifier.width(200.dp)) {
+                    if (!running) {
+                        requestSave()
+                        saveCurrentStateManager.open()
                     }
                 }
             }
@@ -131,6 +188,8 @@ class GameScreen: Screen() {
 
         colorPicker()
 
-        fieldDisplay()
+        fieldDisplay { row: Int, col: Int, color: Int ->
+            game.field.setState(row, col, CellState(color))
+        }
     }
 }
