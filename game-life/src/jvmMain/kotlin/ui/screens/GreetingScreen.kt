@@ -18,13 +18,15 @@ import common.JsonHandler
 class GreetingScreen(
     val onCreateNewGame: () -> Unit,
     val onLoadPreviousGame: () -> Unit,
-    val onLoadExistingGame: () -> Unit
+    val onLoadExistingGame: () -> Unit,
+    val onExit: () -> Unit
 ): Screen() {
     @Composable
     override fun LazyItemScope.draw() {
-        val createNewGame = ManageButton(text = "Начать новую игру")
-        val loadPreviousGame = ManageButton(text = "Загрузить предыдущую игру")
-        val loadExistingGame = ManageButton(text = "Загрузить существующую игру")
+        val createNewGameButton = ManageButton(text = "Начать новую игру")
+        val loadPreviousGameButton = ManageButton(text = "Загрузить предыдущую игру")
+        val loadExistingGameButton = ManageButton(text = "Загрузить существующую игру")
+        val exitButton = ManageButton(text = "Выйти из игры")
 
         val filePicker = FilePicker()
         filePicker { path ->
@@ -34,14 +36,17 @@ class GreetingScreen(
         Column(modifier = Modifier.width(600.dp).height(500.dp),
                horizontalAlignment = Alignment.CenterHorizontally,
                verticalArrangement = Arrangement.Center) {
-            createNewGame(modifier = Modifier.fillMaxWidth()) {
+            createNewGameButton(modifier = Modifier.fillMaxWidth()) {
                 this@GreetingScreen.createNewGame()
             }
-            loadPreviousGame(modifier = Modifier.fillMaxWidth()) {
+            loadPreviousGameButton(modifier = Modifier.fillMaxWidth()) {
                 this@GreetingScreen.loadPreviousGame()
             }
-            loadExistingGame(modifier = Modifier.fillMaxWidth()) {
+            loadExistingGameButton(modifier = Modifier.fillMaxWidth()) {
                 filePicker.open()
+            }
+            exitButton(modifier = Modifier.fillMaxWidth()) {
+                onExit()
             }
         }
     }

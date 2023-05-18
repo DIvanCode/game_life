@@ -18,21 +18,24 @@ data class Field(
         }
     }
 
-    fun getState(row: Int, col: Int): CellState {
+    fun state(row: Int, col: Int): CellState {
         return cells[index(row, col)]
     }
 
     fun setState(row: Int, col: Int, value: CellState) {
-        cells[index(row, col)].color = value.color
-        cells[index(row, col)].isAlive = value.isAlive
+        cells[index(row, col)] = value
     }
 
     fun isAlive(row: Int, col: Int): Boolean {
         return cells[index(row, col)].isAlive
     }
 
-    fun getColor(row: Int, col: Int): Int {
+    fun color(row: Int, col: Int): Int {
         return cells[index(row, col)].color
+    }
+
+    fun aliveGenerations(row: Int, col: Int): Int {
+        return cells[index(row, col)].aliveGenerations
     }
 
     fun index(row: Int, col: Int): Int {
@@ -55,23 +58,30 @@ data class Field(
                     continue
                 }
 
-                neighboursStates.add(getState(neighbourRow, neighbourCol))
+                neighboursStates.add(state(neighbourRow, neighbourCol))
             }
         }
 
         return neighboursStates
     }
 
-    fun change(newField: Field): MutableList<Cell> {
+    fun change(newField: Field, isStep: Boolean = false): MutableList<Cell> {
         val changedCells: MutableList<Cell> = mutableListOf()
 
         for (row in 0 until height) {
             for (col in 0 until width) {
-                if (getState(row, col).color != newField.getState(row, col).color) {
-                    val cellState = newField.getState(row, col)
+                if (color(row, col) != newField.color(row, col) ||
+                    (color(row, col) == newField.color(row, col) && isAlive(row, col))) {
+                    val cellState = newField.state(row, col)
+                    if (isStep && cellState.isAlive) {
+                        cellState.aliveGenerations++
+                    } else {
+                        cellState.aliveGenerations = 0
+                    }
+
                     setState(row, col, cellState)
 
-                    changedCells.add(Cell(row, col, getState(row, col)))
+                    changedCells.add(Cell(row, col, state(row, col)))
                 }
             }
         }

@@ -16,112 +16,263 @@ import common.Game
 import common.JsonHandler
 import common.interaction.Request
 import common.interaction.Response
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import server.controllers.RequestController
-import ui.components.ColorPicker
-import ui.components.ManageDialog
-import ui.components.ManageButton
-import ui.components.Screen
+import ui.components.*
 import ui.displays.CellDisplay
 import ui.displays.FieldDisplay
 import ui.system.DirectoryPicker
 
-class GameScreen: Screen() {
+class GameScreen(
+    val onClose: () -> Unit
+): Screen() {
+    private var game: Game? = null
+    private var colorPicker: ColorPicker? = null
+    private var cellDisplays: MutableList<CellDisplay>? = null
+    private var fieldDisplay: FieldDisplay? = null
+
+    private val makeStepButton = ManageButton(text = "Сделать 1 ход")
+    private val autoStepButton = ManageButton(text = "Автозапуск")
+    private val stopButton = ManageButton(text = "Закончить")
+    private val clearButton = ManageButton(text = "Очистить")
+    private val fillRandomButton = ManageButton(text = "Заполнить случайно")
+    private val saveGameButton = ManageButton(text = "Сохранить в папку")
+    private val closeGameButton = ManageButton(text = "Выйти из этой игры")
+
+    private val autoStepDialog = ManageDialog()
+    private val saveGameDialog = ManageDialog()
+    private val saveAndCloseGameDialog = ManageDialog()
+
+    private val saveGameManager = DirectoryPicker()
+    private val saveAndCloseGameManager = DirectoryPicker()
+
+    private var exactSteps = mutableStateOf(5)
+    private var running = false
+
+
     @Composable
     override fun LazyItemScope.draw() {
-        fun requestSave() {
-            RequestController.handleRequest(Request(
-                route = "/save",
-                method = Request.POST
-            ))
-        }
+        val coroutineScope = rememberCoroutineScope()
 
-        val gameResponse: Response = RequestController.handleRequest(Request(
-            route = "/game",
-            method = Request.GET
-        ))
-        val game = Json.decodeFromString<Game>(gameResponse.body)
-
+        requestGame()
         requestSave()
 
-        val colorPicker = ColorPicker(game.settings.cellColors)
+        createColorPicker()
+        createCellDisplays()
 
-        val cellDisplays: MutableList<CellDisplay> = mutableListOf()
-        for (i in game.field.cells.indices) {
-            val cell = game.field.cells[i]
-            cellDisplays.add(CellDisplay(
-                color = mutableStateOf(colorPicker.colorById(cell.color)),
-                tooltip = mutableStateOf("Nothing")
-            ))
+        saveGameManager { path -> saveGame(path) }
+        saveAndCloseGameManager { path ->
+            saveGame(path)
+            requestClose()
+            onClose()
         }
 
-        val makeStepButton = ManageButton(text = "Сделать 1 ход")
-        val autoStepButton = ManageButton(text = "Автовыполнение")
-        val stopButton = ManageButton(text = "Закончить")
-        val clearButton = ManageButton(text = "Очистить")
-        val fillRandomButton = ManageButton(text = "Заполнить случайно")
-        val saveAsButton = ManageButton(text = "Сохранить в папку")
-        val saveCurrentAsButton = ManageButton(text = "Сохранить текущее состояние в папку")
+        fieldDisplay = FieldDisplay(
+            game!!.settings,
+            cellDisplays!!,
+            colorPicker!!
+        )
 
-        val saveDialog = ManageDialog()
+        manageButtons()
+        colorPicker!!()
 
-        val saveCurrentStateManager = DirectoryPicker()
-        saveCurrentStateManager { path ->
-            JsonHandler.writeGame(game, "$path\\game-${java.util.Date().time}.json")
-            if (saveDialog.show.value) {
-                saveDialog.show.value = false
-            }
+        fieldDisplay!! { row: Int, col: Int, color: Int ->
+            game!!.field.setState(row, col, CellState(color))
         }
 
-        saveDialog {
+        autoStepDialog {
             Dialog(
-                title = "Сохранить?",
-                onCloseRequest = { saveDialog.show.value = false }
+                title = "Настройка автозапуска",
+                onCloseRequest = { autoStepDialog.show.value = false }
             ) {
-                saveCurrentAsButton {
-                    saveCurrentStateManager.open()
+                val infStepsButton = ManageButton(text = "Играть до остановки")
+                val exactStepsButton = ManageButton(text = "Играть ${exactSteps.value} ходов")
+
+                val exactStepsInput = OneRowTextField(
+                    text = mutableStateOf(exactSteps.value.toString()),
+                    placeholder = "Определённое количество ходов"
+                )
+
+                Column {
+                    infStepsButton {
+                        autoStepDialog.show.value = false
+                        autoStep(coroutineScope = coroutineScope)
+                    }
+
+                    exactStepsInput {
+                        try {
+                            exactStepsInput.text.value.toInt()
+                            exactSteps.value = exactStepsInput.text.value.toInt()
+                        } catch (e: NumberFormatException) {
+                            exactStepsInput.errorMessage.value = "Некорректное значение"
+                        }
+                    }
+
+                    exactStepsButton {
+                        autoStepDialog.show.value = false
+                        autoStep(
+                            exactSteps.value,
+                            coroutineScope
+                        )
+                    }
                 }
             }
         }
 
-        val fieldDisplay = FieldDisplay(
-            game.settings,
-            cellDisplays,
-            colorPicker
-        )
+        saveGameDialog {
+            Dialog(
+                title = "Сохранить игру",
+                onCloseRequest = { autoStepDialog.show.value = false }
+            ) {
+                val saveButton = ManageButton(text = "Сохранить в папку")
+                val withoutSaveButton = ManageButton(text = "Не нужно сохранять")
 
-        var running = false
-        val coroutineScope = rememberCoroutineScope()
+                Column {
+                    saveButton {
+                        requestSave()
+                        saveGameManager.open()
+                        saveGameDialog.show.value = false
+                    }
 
-        fun updateUI(changedCells: MutableList<*>) {
-            if (changedCells.isEmpty()) {
-                running = false
-            }
-
-            for (i in changedCells.indices) {
-                val cell = changedCells[i] as Cell
-                val index = game.field.index(cell.row, cell.col)
-                cellDisplays[index].color.value = colorPicker.colorById(cell.state.color)
-                game.field.setState(cell.row, cell.col, cell.state)
+                    withoutSaveButton {
+                        requestSave()
+                        saveGameDialog.show.value = false
+                    }
+                }
             }
         }
 
-        fun requestActivity(route: String) {
-            val response = RequestController.handleRequest(Request(
-                route = route,
-                method = Request.GET
+        saveAndCloseGameDialog {
+            Dialog(
+                title = "Сохранить игру",
+                onCloseRequest = { autoStepDialog.show.value = false }
+            ) {
+                val saveButton = ManageButton(text = "Сохранить в папку")
+                val withoutSaveButton = ManageButton(text = "Не нужно сохранять")
+
+                Column {
+                    saveButton {
+                        requestSave()
+                        saveAndCloseGameManager.open()
+                        saveGameDialog.show.value = false
+                    }
+
+                    withoutSaveButton {
+                        requestSave()
+                        saveGameDialog.show.value = false
+                        requestClose()
+                        onClose()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun requestGame() {
+        val gameResponse: Response = RequestController.handleRequest(Request(
+            route = "/game",
+            method = Request.GET
+        ))
+
+        game = Json.decodeFromString<Game>(gameResponse.body)
+    }
+
+    private fun requestSave() {
+        RequestController.handleRequest(Request(
+            route = "/save",
+            method = Request.POST
+        ))
+    }
+
+    private fun createColorPicker() {
+        colorPicker = ColorPicker(game!!.settings.cellColors)
+    }
+
+    private fun createCellDisplays() {
+        cellDisplays = mutableListOf()
+        for (i in game!!.field.cells.indices) {
+            val cell = game!!.field.cells[i]
+            cellDisplays!!.add(CellDisplay(
+                color = mutableStateOf(colorPicker!!.colorById(cell.color)),
+                tooltip = mutableStateOf(cell.aliveGenerations.toString())
             ))
+        }
+    }
 
-            updateUI(Json.decodeFromString<MutableList<Cell>>(response.body))
+    private fun saveGame(path: String) {
+        JsonHandler.writeGame(game!!, "$path\\game-${java.util.Date().time}.json")
+    }
+
+    private fun autoStep(steps: Int = -1, coroutineScope: CoroutineScope) {
+        if (running) {
+            return
         }
 
-        fun makeStep() {
-            requestActivity("/game/step")
+        requestNewGeneration()
+        running = true
+        coroutineScope.launch {
+            requestSave()
+
+            var done = 0
+            while (running && done != steps) {
+                delay(50)
+                makeStep()
+                ++done
+            }
+
+            requestSave()
+            saveGameDialog.show.value = true
+        }
+    }
+
+    private fun requestAction(route: String) {
+        val response = RequestController.handleRequest(Request(
+            route = route,
+            method = Request.GET
+        ))
+
+        updateUI(Json.decodeFromString<MutableList<Cell>>(response.body))
+    }
+
+    private fun makeStep() {
+        requestAction("/game/step")
+    }
+
+    private fun requestNewGeneration() {
+        val response = RequestController.handleRequest(Request(
+            route = "/generation",
+            method = Request.GET
+        ))
+    }
+
+    private fun updateUI(changedCells: MutableList<*>) {
+        if (changedCells.isEmpty()) {
+            running = false
         }
 
+        for (i in changedCells.indices) {
+            val cell = changedCells[i] as Cell
+            val index = game!!.field.index(cell.row, cell.col)
+            cellDisplays!![index].changeColor(colorPicker!!.colorById(cell.state.color))
+            cellDisplays!![index].changeTooltip(cell.state.aliveGenerations.toString())
+            game!!.field.setState(cell.row, cell.col, cell.state)
+        }
+    }
+
+    private fun requestClose() {
+        RequestController.handleRequest(Request(
+            route = "/close",
+            method = Request.POST
+        ))
+    }
+
+    @Composable
+    private fun manageButtons() {
         LazyRow {
             item {
                 makeStepButton(modifier = Modifier.width(200.dp)) {
@@ -134,21 +285,7 @@ class GameScreen: Screen() {
 
             item {
                 autoStepButton(modifier = Modifier.width(200.dp)) {
-                    if (!running) {
-                        running = true
-                        coroutineScope.launch {
-                            requestSave()
-
-                            while (running) {
-                                delay(50)
-                                makeStep()
-                            }
-
-                            requestSave()
-
-                            saveDialog.show.value = true
-                        }
-                    }
+                    autoStepDialog.show.value = true
                 }
             }
 
@@ -161,7 +298,7 @@ class GameScreen: Screen() {
             item {
                 clearButton(modifier = Modifier.width(200.dp)) {
                     if (!running) {
-                        requestActivity("/game/clear")
+                        requestAction("/game/clear")
                         requestSave()
                     }
                 }
@@ -170,26 +307,26 @@ class GameScreen: Screen() {
             item {
                 fillRandomButton(modifier = Modifier.width(200.dp)) {
                     if (!running) {
-                        requestActivity("/game/random")
+                        requestAction("/game/random")
                         requestSave()
                     }
                 }
             }
 
             item {
-                saveAsButton(modifier = Modifier.width(200.dp)) {
+                saveGameButton(modifier = Modifier.width(200.dp)) {
                     if (!running) {
                         requestSave()
-                        saveCurrentStateManager.open()
+                        saveGameManager.open()
                     }
                 }
             }
-        }
 
-        colorPicker()
-
-        fieldDisplay { row: Int, col: Int, color: Int ->
-            game.field.setState(row, col, CellState(color))
+            item {
+                closeGameButton(modifier = Modifier.width(200.dp)) {
+                    saveAndCloseGameDialog.show.value = true
+                }
+            }
         }
     }
 }

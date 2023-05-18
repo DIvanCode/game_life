@@ -12,7 +12,7 @@ data class GameSettings(
     var birthAmount: Int = 3
 ) {
     companion object {
-        const val MAX_FIELD_SIZE = 1000
+        const val MAX_FIELD_SIZE = 1024
         const val MAX_COLORS = 12
         const val MAX_ALIVE_BORDER = 9
         const val MAX_BIRTH_AMOUNT = 9

@@ -11,7 +11,9 @@ import ui.screens.GameSettingsScreen
 import ui.screens.GreetingScreen
 
 @Composable
-fun App() {
+fun App(
+    onClose: () -> Unit
+) {
     val screens: MutableList<Screen> = mutableListOf()
     val currentScreen = remember { mutableStateOf(0) }
 
@@ -24,6 +26,9 @@ fun App() {
         },
         onLoadExistingGame = {
             currentScreen.value = 2
+        },
+        onExit = {
+            onClose()
         }
     ))
 
@@ -31,7 +36,12 @@ fun App() {
         currentScreen.value = 2
     })
 
-    screens.add(GameScreen())
+    screens.add(GameScreen(
+        onClose = {
+            println("HERE")
+            currentScreen.value = 0
+        }
+    ))
 
 //    screens.add(TestScreen())
 //    currentScreen.value = screens.size - 1

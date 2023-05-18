@@ -12,7 +12,7 @@ fun main() = application {
         title = "Game Life"
     ) {
         Surface(modifier = Modifier.fillMaxSize()) {
-            App()
+            App(onClose = ::exitApplication)
         }
     }
 }

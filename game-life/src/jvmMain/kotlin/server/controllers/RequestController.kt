@@ -174,6 +174,29 @@ object RequestController {
                 return ResponseOK()
             }
         }
+        if (request.route == "/generation") {
+            if (request.method == Request.POST) {
+                if (gameController == null) {
+                    return ResponseError("Game is null")
+                }
+
+                gameController!!.newGeneration()
+
+                return ResponseOK()
+            }
+        }
+        if (request.route == "/close") {
+            if (request.method == Request.POST) {
+                if (gameController == null) {
+                    return ResponseError("Game is null")
+                }
+
+                gameSettingsController = null
+                gameController = null
+
+                return ResponseOK()
+            }
+        }
 
         return ResponseError("Unhandled request")
     }

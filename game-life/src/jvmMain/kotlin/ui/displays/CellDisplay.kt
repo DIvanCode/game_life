@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 
 class CellDisplay(
     var color: MutableState<Color> = mutableStateOf(Color.White),
-    var tooltip: MutableState<String> = mutableStateOf("")
+    var tooltip: MutableState<String> = mutableStateOf("0")
 ) {
     fun changeColor(color: Color) {
         this.color.value = color
@@ -45,17 +45,19 @@ class CellDisplay(
                     )
                 }
             },
-            delayMillis = 1000,
+            delayMillis = 600,
             tooltipPlacement = TooltipPlacement.CursorPoint(
                 alignment = Alignment.BottomEnd,
                 offset = DpOffset.Zero
             )
         ) {
-            Box(modifier = Modifier
-                .size(20.dp, 20.dp)
-                .border(BorderStroke(1.dp, Color.Black))
-                .background(color.value)
-                .clickable(onClick = onClick))
+            Box(
+                modifier = Modifier
+                    .size(20.dp, 20.dp)
+                    .border(BorderStroke(1.dp, Color.Black))
+                    .background(color.value)
+                    .clickable(onClick = onClick)
+            )
         }
     }
 }

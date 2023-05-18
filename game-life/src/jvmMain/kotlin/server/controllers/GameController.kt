@@ -7,7 +7,19 @@ class GameController(
     val game: Game =
         Game(gameSettings)
 ) {
+    fun newGeneration() {
+        for (row in 0 until game.settings.fieldHeight) {
+            for (col in 0 until game.settings.fieldWidth) {
+                val cellState = game.field.state(row, col)
+                cellState.aliveGenerations = 0
+                game.field.setState(row, col, cellState)
+            }
+        }
+    }
+
     fun clear(): MutableList<Cell> {
+        newGeneration()
+
         val newField = Field(game.settings.fieldHeight, game.settings.fieldWidth)
 
         for (row in 0 until game.settings.fieldHeight) {
@@ -22,6 +34,8 @@ class GameController(
     }
 
     fun fillRandom(): MutableList<Cell> {
+        newGeneration()
+
         val newField = Field(game.settings.fieldHeight, game.settings.fieldWidth)
 
         for (row in 0 until game.settings.fieldHeight) {
@@ -45,7 +59,7 @@ class GameController(
             }
         }
 
-        return game.field.change(newField)
+        return game.field.change(newField, isStep = true)
     }
 
     private fun getNewCellState(row: Int, col: Int): CellState {
@@ -69,9 +83,9 @@ class GameController(
             }
         }
 
-        val sameNeighbours = neighbourStates.count { it.color == game.field.getColor(row, col) }
+        val sameNeighbours = neighbourStates.count { it.color == game.field.color(row, col) }
         return if (sameNeighbours >= game.settings.aliveLeftBorder && sameNeighbours <= game.settings.aliveRightBorder) {
-            game.field.getState(row, col)
+            game.field.state(row, col)
         } else {
             CellState(0)
         }
