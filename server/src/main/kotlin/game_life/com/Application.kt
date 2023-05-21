@@ -12,9 +12,5 @@ fun main() {
 
 fun Application.module() {
     configureHTTP()
-    configureMonitoring()
-    configureDatabases()
-    configureSockets()
-    configureAdministration()
     configureRouting()
 }
